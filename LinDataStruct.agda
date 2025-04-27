@@ -4,7 +4,7 @@ open import Agda.Builtin.Nat
   using (Nat; _+_; _*_; suc; zero)
 open import Agda.Builtin.Bool 
 
--- # Misc. Definitions
+-- # Misc. Definitions + Functions
 
 data ⊥ : Set where
 
@@ -31,6 +31,8 @@ data Dec (P : Set) : Set where
   yes : P → Dec P
   no  : (P → ⊥) → Dec P
 
+⊥-elim : ∀ {A : Set} → ⊥ → A
+⊥-elim ()
 
 
 -- ## Definitions : Basic List
@@ -129,15 +131,18 @@ rev-involutive (x , xs)
 
 -- ## Definitions: Sorted List
 
+-- Slist inspired by mazzo.li (website).
 data SList (l u : Nat) : Set where
-  nil : SList l u 
+  nil : l < u → SList l u 
   cons : (x : Nat) → SList x u → l < x → SList l u
 
+-- Converts Sorted List to normal list to improve readability.
 toList : ∀ {l u} → SList l u → List Nat
-toList (nil) = []
+toList (nil _) = []
 toList (cons x xs _) = (x , toList xs)
 
--- Helper function for insert
+-- Helper function for insert: decidable inequality.
+-- Based on decidable equality function. Using Dec type for cleaner implementation.
 _<?_ : ∀ (x y : Nat) → Dec (x < y)
 zero  <? zero   = no (λ ())
 zero  <? suc y  = yes zero
@@ -146,18 +151,34 @@ suc x <? suc y  with x <? y
 ... | yes x<y = yes (suc x<y)
 ... | no ¬x<y = no (λ { (suc x<y) → ¬x<y x<y })
 
-insert : ∀ {l u} → Nat → SList l u → (n < u) → SList l u
-insert n nil n<u = cons n nil n<u
-insert n (cons x xs l<x) n<u with n <? x
-... | yes n<x = cons n (cons x xs l<x) n<x
-... | no ¬n<x = cons x (insert n xs n<u) l<x
+-- Helper function for insert: converts "not less than" to "greater than or equal to"
+-- Created with help from DeepSeek.
+≮-implies-> : ∀ {x y} → ~ (y < x) → x < y ⊔ x ≡ y
+≮-implies-> {zero} {zero} _ = right refl
+≮-implies-> {zero} {suc y} ¬x<y = left zero  -- zero < suc y is always true
+≮-implies-> {suc x} {zero} ¬y<x = ⊥-elim (¬y<x zero)  -- suc x > zero is always true
+≮-implies-> {suc x} {suc y} ¬x<y with ≮-implies-> (λ x<y → ¬x<y (suc x<y))
+... | left y<x = left (suc y<x)
+... | right refl = right refl
 
--- insert : ∀ {l u} x → SList l u → l < x → x < u → SList l u
--- insert x nil l<x x<u = cons x nil l<x
---insert x (cons y ys y<u) l<x x<u with x <? y
--- ... | yes x<y = cons x (cons y ys x<y) l<x
--- ... | no notX<y = cons y (insert x ys y< x<u) y<u
---  where
---    y< : y < x
---    y< = {!   !} -- ok I completely lost it after this point 
+-- inspired by mazzo.li (website).
+insert : ∀ {l u} x → SList l u → l < x → x < u → SList l u
+insert x (nil l<u) l<x x<u = cons x (nil x<u) l<x
+insert x (cons y ys l<y) l<x x<u with x <? y
+... | yes x<y = cons x (cons y ys x<y) l<x
+... | no ¬x<y with ≮-implies-> ¬x<y
+...   | left y<x = cons y (insert x ys y<x x<u) l<y
+...   | right refl = cons y ys l<y  -- x ≡ y, duplicate, just return original
+
+merge : ∀ {l u} → SList l u → SList l u → SList l u
+merge (nil _) ys = ys
+merge xs (nil _) = xs
+
+
+
+-- merge (cons x xs l<x) (cons y ys l<y) with x <? y
+-- ... | yes x<y = cons x (merge xs (cons y ys x<y)) l<x
+-- ... | no ¬x<y with ≮-implies-> ¬x<y
+-- ...   | left y<x = cons y (merge (cons x xs y<x) ys) l<y
+-- ...   | right refl = cons x (merge xs ys) l<x  -- x ≡ y, take one and proceed
 
