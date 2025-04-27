@@ -19,6 +19,19 @@ data _⊔_ (A B : Set) : Set where
   right : B → A ⊔ B
 infix 3 _⊔_
 
+data _<_ : Nat → Nat → Set where
+  zero : ∀ {b}
+    → zero < suc b
+  suc : ∀ {a b} → a < b
+    → suc a < suc b
+infix 4 _<_
+
+-- Decidable equality (for <?) builtin style
+data Dec (P : Set) : Set where
+  yes : P → Dec P
+  no  : (P → ⊥) → Dec P
+
+
 
 -- ## Definitions : Basic List
 
@@ -115,3 +128,36 @@ rev-involutive (x , xs)
 
 
 -- ## Definitions: Sorted List
+
+data SList (l u : Nat) : Set where
+  nil : SList l u 
+  cons : (x : Nat) → SList x u → l < x → SList l u
+
+toList : ∀ {l u} → SList l u → List Nat
+toList (nil) = []
+toList (cons x xs _) = (x , toList xs)
+
+-- Helper function for insert
+_<?_ : ∀ (x y : Nat) → Dec (x < y)
+zero  <? zero   = no (λ ())
+zero  <? suc y  = yes zero
+suc x <? zero   = no (λ ())
+suc x <? suc y  with x <? y
+... | yes x<y = yes (suc x<y)
+... | no ¬x<y = no (λ { (suc x<y) → ¬x<y x<y })
+
+insert : ∀ {l u} → Nat → SList l u → (n < u) → SList l u
+insert n nil n<u = cons n nil n<u
+insert n (cons x xs l<x) n<u with n <? x
+... | yes n<x = cons n (cons x xs l<x) n<x
+... | no ¬n<x = cons x (insert n xs n<u) l<x
+
+-- insert : ∀ {l u} x → SList l u → l < x → x < u → SList l u
+-- insert x nil l<x x<u = cons x nil l<x
+--insert x (cons y ys y<u) l<x x<u with x <? y
+-- ... | yes x<y = cons x (cons y ys x<y) l<x
+-- ... | no notX<y = cons y (insert x ys y< x<u) y<u
+--  where
+--    y< : y < x
+--    y< = {!   !} -- ok I completely lost it after this point 
+
