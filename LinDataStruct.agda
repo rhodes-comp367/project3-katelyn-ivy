@@ -40,6 +40,7 @@ data Dec (P : Set) : Set where
 data List (A : Set) : Set where
     [] : List A
     _,_ : A → List A → List A
+infix 20 _,_ --changed
 
 concat : {A : Set} → List A → List A → List A
 concat [] ys = ys
@@ -170,15 +171,59 @@ insert x (cons y ys l<y) l<x x<u with x <? y
 ...   | left y<x = cons y (insert x ys y<x x<u) l<y
 ...   | right refl = cons y ys l<y  -- x ≡ y, duplicate, just return original
 
+{-# TERMINATING #-} -- Agda 
 merge : ∀ {l u} → SList l u → SList l u → SList l u
 merge (nil _) ys = ys
 merge xs (nil _) = xs
+merge (cons x xs l<x) (cons y ys l<y) with x <? y
+... | yes x<y = cons x (merge xs (cons y ys x<y)) l<x
+... | no ¬x<y with ≮-implies-> ¬x<y
+...   | left y<x = cons y (merge (cons x xs y<x) ys) l<y
+...   | right refl = cons x (merge xs ys) l<x  -- x ≡ y, take one and proceed
 
 
+--Testing
+-- Helper function to create bounds
+low : Nat → Nat
+low _ = zero
 
--- merge (cons x xs l<x) (cons y ys l<y) with x <? y
--- ... | yes x<y = cons x (merge xs (cons y ys x<y)) l<x
--- ... | no ¬x<y with ≮-implies-> ¬x<y
--- ...   | left y<x = cons y (merge (cons x xs y<x) ys) l<y
--- ...   | right refl = cons x (merge xs ys) l<x  -- x ≡ y, take one and proceed
+high : Nat → Nat
+high _ = 100  -- Arbitrary large upper bound
 
+-- Example sorted lists
+list1 : SList (low 0) (high 0)
+list1 = cons 1 (cons 3 (cons 5 (nil (suc (suc (suc zero)))) zero))
+
+list2 : SList (low 0) (high 0)
+list2 = cons 2 (cons 4 (cons 6 (nil (suc (suc (suc zero))))) zero)
+
+list3 : SList (low 0) (high 0)
+list3 = cons 1 (cons 2 (cons 2 (nil (suc (suc zero)))) zero)
+
+list4 : SList (low 0) (high 0)
+list4 = cons 2 (cons 3 (cons 4 (nil (suc (suc (suc zero))))) zero)
+
+-- Empty lists
+empty1 : SList (low 0) (high 0)
+empty1 = nil zero
+
+empty2 : SList (low 0) (high 0)
+empty2 = nil zero
+
+-- ## Tests
+
+-- Test merging two non-empty lists
+test-merge1 : toList (merge list1 list2) ≡ (1 , (2 , (3 , (4 , (5 , (6 , []))))))
+test-merge1 = refl
+
+-- Test merging with an empty list (left)
+test-merge-empty-left : toList (merge empty1 list1) ≡ toList list1
+test-merge-empty-left = refl
+
+-- Test merging with an empty list (right)
+test-merge-empty-right : toList (merge list1 empty1) ≡ toList list1
+test-merge-empty-right = refl
+
+-- Test merging two empty lists
+test-merge-empty-both : toList (merge empty1 empty2) ≡ []
+test-merge-empty-both = refl
