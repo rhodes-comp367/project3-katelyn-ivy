@@ -3,7 +3,7 @@
 
 ### **Explain the general theme and specific features of your project.** ###
 <br> Our project focuses on building the list type in agda. We are also building a sorted list type. 
-With both types, we are additionally developing proofsz associated with a list. Some examples include reversing a list preserves size, concatening preserves the elements within the lists, and a merged list remains sorted after merging.
+With both types, we are additionally developing proofs associated with a list. Some examples include reversing a list preserves size, concatening preserves the elements within the lists, and a merged list remains sorted after merging.
 
 
 ### **Cite any resources or existing code you used.** ###
