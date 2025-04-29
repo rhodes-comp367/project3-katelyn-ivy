@@ -11,6 +11,9 @@ With both types, we are additionally developing proofs associated with a list. S
 
 
 ### **Discuss any challenges, or anything you'd like feedback on.** ###
-<br> Ivy: Writing tests cases was particularly challenging for me. I couldn't quite figure out if the issue was with the code we had written or if the issue was with the test cases themselves. The issue was 
+<br> Below are 
+<br> Ivy: Writing tests cases was particularly challenging for me. I couldn't quite figure out if the issue was with the code we had written or if the issue was with the test cases themselves. I don't necessarily need feedback but I did struggle with it. 
+
+<br> Katelyn: Merging with a sorted lists was quite difficult. Getting the function to do recurssion properly and applying the logic of merge (especially to proofs) was difficult.
 
 
