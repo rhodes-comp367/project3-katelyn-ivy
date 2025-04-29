@@ -34,13 +34,12 @@ data Dec (P : Set) : Set where
 ⊥-elim : ∀ {A : Set} → ⊥ → A
 ⊥-elim ()
 
-
 -- ## Definitions : Basic List
 
 data List (A : Set) : Set where
     [] : List A
     _,_ : A → List A → List A
-infixr 20 _,_ --changed
+infixr 20 _,_ 
 
 concat : {A : Set} → List A → List A → List A
 concat [] ys = ys
@@ -73,7 +72,7 @@ size : {A : Set} → List A → Nat
 size [] = zero 
 size (x , xs) = suc (size xs) 
 
--- ## Proofs
+-- ## Proofs 
 
 -- concatenating an empty list to another list results in no change. 
 concat-empty : (xs : List Nat) → (concat [] xs) ≡ xs
@@ -133,6 +132,7 @@ rev-involutive (x , xs)
 -- ## Definitions: Sorted List
 
 -- Slist inspired by mazzo.li (website).
+-- Optional: figure out how to set upper lower bounds to 1 - 10 always
 data SList (l u : Nat) : Set where
   nil : l < u → SList l u 
   cons : (x : Nat) → SList x u → l < x → SList l u
@@ -171,16 +171,16 @@ insert x (cons y ys l<y) l<x x<u with x <? y
 ...   | left y<x = cons y (insert x ys y<x x<u) l<y
 ...   | right refl = cons y ys l<y  -- x ≡ y, duplicate, just return original
 
-{-# TERMINATING #-} -- Agda 
--- There is probably a way to make recursion easier here but we could not figure out how
-merge : ∀ {l u} → SList l u → SList l u → SList l u
-merge xs (nil _) = xs
-merge (nil _) ys = ys
-merge (cons x xs l<x) (cons y ys l<y) with x <? y
-... | yes x<y = cons x (merge xs (cons y ys x<y)) l<x
+merge' : ∀ {l u} → (n : Nat) → SList l u → SList l u → SList l u
+merge' zero xs ys = xs  -- fallback
+merge' (suc n) xs (nil _) = xs
+merge' (suc n) (nil _) (cons y ys l<y) = (cons y ys l<y)
+merge' (suc n) (cons x xs l<x) (cons y ys l<y) with x <? y
+... | yes x<y = cons x (merge' n xs (cons y ys x<y)) l<x
 ... | no ¬x<y with ≮-implies-> ¬x<y
-...   | left y<x = cons y (merge (cons x xs y<x) ys) l<y
-...   | right refl = cons x (merge xs ys) l<x  -- x ≡ y, take one and proceed
+...   | left y<x = cons y (merge' n (cons x xs y<x) ys) l<y
+...   | right refl = cons x (merge' n xs ys) l<x
+
 
 Scontains : ∀ {l u} → Nat → SList l u → Bool
 Scontains n (nil _) = false 
@@ -192,4 +192,24 @@ Ssize : ∀ {l u} → SList l u → Nat
 Ssize (nil _) = zero
 Ssize (cons x xs l<x) = suc (Ssize xs)
 
- 
+-- ## Proofs 
+
+-- After inserting an element n into an Slist, the list's size will either remain the same or increase by 1.
+insert-size : ∀ {l u} → (n : Nat) → (xs : SList l u) → (l<n : l < n) → (n<u : n < u) →
+              (Ssize (insert n xs l<n n<u) ≡ Ssize xs) ⊔ (Ssize (insert n xs l<n n<u) ≡ suc (Ssize xs))
+insert-size n (nil _) _ _ = right refl  -- inserting into an empty list increases the size by 1
+insert-size n (cons x xs _) l<n n<u with n <? x
+... | yes _ = right refl -- n < x, therefore size increases by 1
+... | no ¬n<x with ≮-implies-> ¬n<x  
+...   | right refl = left refl -- n ≡ x, therefore size remains the same
+...   | left x<n with insert-size n xs x<n n<u -- x < n; insert n into xs using recursive case 
+...     | left rec rewrite rec = left refl -- size remains the same
+...     | right rec rewrite rec = right refl -- size increases by 1
+
+-- Inserting n into an empty SList returns n.
+insert-into-empty : ∀ {l u} (n : Nat) (l<u : l < u) (l<n : l < n) (n<u : n < u) →
+  insert n (nil l<u) l<n n<u ≡ cons n (nil n<u) l<n
+insert-into-empty n l<u l<n n<u = refl
+
+
+
